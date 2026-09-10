@@ -8,9 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "ingest": "tsx scripts/ingest.ts",
-    "normalize": "tsx scripts/normalize.ts",
-    "aggregate": "tsx scripts/aggregate.ts"
+    "ingest": "tsx --env-file=.env.local scripts/ingest.ts",
+    "normalize": "tsx --env-file=.env.local scripts/normalize.ts",
+    "aggregate": "tsx --env-file=.env.local scripts/aggregate.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

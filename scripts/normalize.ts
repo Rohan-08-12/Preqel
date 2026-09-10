@@ -5,6 +5,8 @@
  * Usage:
  *   npm run normalize -- --quarter 2026Q1
  *
+ * (Args are parsed with node:util parseArgs, matching scripts/ingest.ts.)
+ *
  * Steps (see Preqel schema doc for table shapes):
  *   1. For each distinct employer_raw in raw_lmia_rows for this quarter,
  *      check employer_aliases first (already resolved -> skip).
@@ -31,16 +33,21 @@
  * not assumptions.
  */
 
+import { parseArgs } from "node:util";
 import { pool } from "../lib/db";
 import { normalizeEmployerName } from "../lib/employer-normalize";
 
-const quarter = process.argv
-  .find((arg) => arg.startsWith("--quarter"))
-  ?.split("=")[1];
+const { values } = parseArgs({
+  options: {
+    quarter: { type: "string" },
+  },
+});
+
+const quarter = values.quarter;
 
 async function main() {
   if (!quarter) {
-    console.error("Usage: npm run normalize -- --quarter=2026Q1");
+    console.error("Usage: npm run normalize -- --quarter 2026Q1");
     process.exit(1);
   }
 

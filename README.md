@@ -50,10 +50,13 @@ product vision, phased roadmap, and known risks/limitations.
    cp .env.example .env.local
    ```
    Fill in:
-   - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` — from
-     Supabase project settings -> API
+   - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` —
+     the publishable key (`sb_publishable_...`), from the "Connect" dialog
+     in the project header or Supabase project settings -> API Keys.
+     (Legacy `anon` JWT keys still work but are deprecated by end of 2026.)
    - `SUPABASE_DB_URL` — from Supabase project settings -> Database ->
-     Connection string (URI format, "Transaction" pooler mode)
+     Connection string (URI format, "Session" pooler mode / port 5432 —
+     the batch scripts use `pg`, which wants session mode)
 
 5. **Run the app**:
    ```
@@ -69,7 +72,7 @@ into a local `data/` folder (gitignored — don't commit source files), then:
 
 ```
 npm run ingest -- --file ./data/tfwp_2026q1_pos_en.xlsx --quarter 2026Q1
-npm run normalize -- --quarter=2026Q1
+npm run normalize -- --quarter 2026Q1
 npm run aggregate
 ```
 

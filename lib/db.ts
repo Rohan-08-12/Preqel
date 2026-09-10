@@ -6,8 +6,9 @@ import { Pool } from "pg";
 // straight to the Supabase Postgres instance instead.
 //
 // Get this connection string from: Supabase project settings ->
-// Database -> Connection string (use the "URI" format, "Transaction"
-// pooler mode is fine for batch inserts).
+// Database -> Connection string (use the "URI" format, "Session" pooler
+// mode / port 5432 — pg wants session mode, transaction mode drops
+// prepared-statement support).
 
 const connectionString = process.env.SUPABASE_DB_URL;
 

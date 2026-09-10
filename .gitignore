@@ -11,6 +11,7 @@ out/
 .env*.local
 
 # misc
+tsconfig.tsbuildinfo
 .DS_Store
 *.log
 npm-debug.log*
