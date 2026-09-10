@@ -73,6 +73,12 @@ export function classifyTrend(
   return latest.quarter === latestOverallQuarter ? "up" : "down";
 }
 
+function titleCaseDisplayName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/(^|[\s-])([a-zà-ÿ])/g, (_match, boundary, letter) => boundary + letter.toUpperCase());
+}
+
 /**
  * Groups raw mv_hiring_trends rows (already joined with employer/role
  * family names) by employer+role+province+city, and classifies a trend
@@ -120,7 +126,7 @@ export function groupAndClassify(
 
     signals.push({
       employerId: latest.employer_id,
-      employerName: latest.employer_name,
+      employerName: titleCaseDisplayName(latest.employer_name),
       roleFamilyId: latest.role_family_id,
       roleFamilyName: latest.role_family_name,
       province: latest.province_territory,
