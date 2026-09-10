@@ -74,7 +74,7 @@ export function normalizeEmployerName(raw: string): string {
   let name = raw.trim().toUpperCase();
 
   // Normalize punctuation/whitespace before touching suffixes.
-  name = name.replace(/[.,]/g, "");
+  name = name.replace(/[.,']/g, "");
   name = name.replace(/\s+/g, " ").trim();
 
   // Strip a known leading corporate-structure descriptor, if present.
