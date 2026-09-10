@@ -144,7 +144,7 @@ async function insertBatched(rows: RawRow[], batchSize = 500) {
     const values: unknown[] = [];
     const placeholders = batch
       .map((r, idx) => {
-        const base = idx * 8;
+        const base = idx * 9;
         values.push(
           r.source_quarter,
           r.source_file,
