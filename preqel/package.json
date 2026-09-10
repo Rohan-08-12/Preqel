@@ -1,0 +1,35 @@
+{
+  "name": "preqel",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hiring-signal intelligence built from Canadian public regulatory data (ESDC LMIA).",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "ingest": "tsx scripts/ingest.ts",
+    "normalize": "tsx scripts/normalize.ts",
+    "aggregate": "tsx scripts/aggregate.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "next": "^14.2.13",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.5",
+    "@types/pg": "^8.11.10",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.20",
+    "exceljs": "^4.4.0",
+    "fastest-levenshtein": "^1.0.16",
+    "pg": "^8.13.0",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.11",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2"
+  }
+}
