@@ -14,7 +14,7 @@ import { distance } from "fastest-levenshtein";
  * "needs_review" than guess wrong.
  */
 
-export const AUTO_LINK_THRESHOLD = 0.92;
+export const AUTO_LINK_THRESHOLD = 0.95;
 export const REVIEW_THRESHOLD = 0.85;
 
 export type EmployerCandidate = {
