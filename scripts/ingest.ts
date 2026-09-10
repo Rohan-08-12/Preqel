@@ -71,6 +71,12 @@ async function main() {
   let headerSeen = false;
 
   sheet.eachRow((row) => {
+    // Real 2026Q1 file layout — 8 data columns, header on row 2:
+    //   A Province/Territory  B Program Stream  C Employer  D Address
+    //   E Occupation  F Incorporate Status  G Approved LMIAs  H Approved Positions
+    // (row.values is 1-indexed, so index 0 is the leading empty slot.)
+    // incorporateStatusCell / approvedLmiasCell are destructured only to keep
+    // the column positions self-documenting — they're not in the v1 schema.
     const [
       ,
       provinceCell,
@@ -78,6 +84,8 @@ async function main() {
       employerCell,
       addressCell,
       occupationCell,
+      incorporateStatusCell,
+      approvedLmiasCell,
       positionsCell,
     ] = row.values as unknown[];
 
@@ -89,6 +97,10 @@ async function main() {
     const positions = cellToNumber(positionsCell);
 
     // Skip the title row and the header row itself.
+    // NOTE: this checks column C specifically because that's where "Employer"
+    // currently falls in the header row. If ESDC ever reorders the columns
+    // again, this detection silently stops matching and every row gets treated
+    // as data (or nothing does) — start looking here if that happens.
     if (!headerSeen) {
       if (employer?.toLowerCase().includes("employer")) {
         headerSeen = true;
