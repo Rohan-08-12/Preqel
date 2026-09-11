@@ -175,6 +175,59 @@ export default function Home() {
         </select>
       </div>
 
+      <details className="mb-6 rounded border border-gray-200 text-sm">
+        <summary className="cursor-pointer px-3 py-2 text-gray-600 hover:text-gray-900">
+          What do these trends mean?
+        </summary>
+        <div className="border-t border-gray-200 px-3 py-3 text-gray-600">
+          <p className="mb-2">
+            Each row compares an employer&apos;s hiring in one role family
+            and province across ESDC&apos;s quarterly filings. Trend badges
+            reflect the change between the two most recent quarters that
+            employer actually filed in — not necessarily consecutive
+            calendar quarters, since not every employer files every
+            quarter.
+          </p>
+          <ul className="ml-4 list-disc space-y-1">
+            <li>
+              <span className="rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-800">
+                Ramping up
+              </span>{" "}
+              — approved positions increased by more than 15% since their
+              previous filing, or this is the employer&apos;s first filing
+              in the newest quarter of data.
+            </li>
+            <li>
+              <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-700">
+                Flat
+              </span>{" "}
+              — within 15% of their previous filing, in either direction.
+            </li>
+            <li>
+              <span className="rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-800">
+                Declining
+              </span>{" "}
+              — approved positions dropped by more than 15% since their
+              previous filing.
+            </li>
+            <li>
+              <span className="rounded bg-yellow-100 px-1.5 py-0.5 text-xs text-yellow-800">
+                Limited data
+              </span>{" "}
+              — this employer has only one quarter of filing history so
+              far, and it&apos;s not the newest quarter in the data. Not
+              enough to call a real trend either way.
+            </li>
+          </ul>
+          <p className="mt-3 text-xs text-gray-500">
+            Based on ESDC&apos;s Positive LMIA Employers List, updated
+            quarterly with roughly a 4-month lag. &ldquo;Positions&rdquo;
+            reflects what an employer was approved to hire, not a
+            confirmed headcount.
+          </p>
+        </div>
+      </details>
+
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
       {loading && <p className="mb-4 text-sm text-gray-500">Searching…</p>}
 
