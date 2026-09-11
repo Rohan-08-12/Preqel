@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 type RoleFamily = { id: number; name: string };
 type TrendDirection = "up" | "flat" | "down" | "limited";
@@ -46,6 +46,20 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  function rowKey(r: HiringSignal) {
+    return `${r.employerId}-${r.roleFamilyId}-${r.province}-${r.city}`;
+  }
+
+  function toggleExpanded(key: string) {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   const PAGE_SIZE = 100;
 
@@ -260,27 +274,59 @@ export default function Home() {
             </tr>
           </thead>
           <tbody>
-            {results.map((r) => (
-              <tr
-                key={`${r.employerId}-${r.roleFamilyId}-${r.province}-${r.city}`}
-                className="border-b border-gray-100"
-              >
-                <td className="px-1 py-2 font-medium">{r.employerName}</td>
-                <td className="px-1 py-2 text-gray-600">{r.roleFamilyName}</td>
-                <td className="px-1 py-2 text-gray-600">
-                  {r.city ? `${r.city}, ` : ""}
-                  {r.province}
-                </td>
-                <td className="px-1 py-2">
-                  <span
-                    className={`rounded px-2 py-0.5 text-xs ${TREND_STYLE[r.trend]}`}
+            {results.map((r) => {
+              const key = rowKey(r);
+              const isExpanded = expandedRows.has(key);
+              return (
+                <Fragment key={key}>
+                  <tr
+                    onClick={() => toggleExpanded(key)}
+                    className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
                   >
-                    {TREND_LABEL[r.trend]}
-                  </span>
-                </td>
-                <td className="px-1 py-2 text-right">{r.latestPositions}</td>
-              </tr>
-            ))}
+                    <td className="px-1 py-2 font-medium">
+                      <span className="mr-1.5 inline-block w-3 text-gray-400">
+                        {isExpanded ? "▾" : "▸"}
+                      </span>
+                      {r.employerName}
+                    </td>
+                    <td className="px-1 py-2 text-gray-600">{r.roleFamilyName}</td>
+                    <td className="px-1 py-2 text-gray-600">
+                      {r.city ? `${r.city}, ` : ""}
+                      {r.province}
+                    </td>
+                    <td className="px-1 py-2">
+                      <span
+                        className={`rounded px-2 py-0.5 text-xs ${TREND_STYLE[r.trend]}`}
+                      >
+                        {TREND_LABEL[r.trend]}
+                      </span>
+                    </td>
+                    <td className="px-1 py-2 text-right">{r.latestPositions}</td>
+                  </tr>
+                  {isExpanded && (
+                    <tr className="border-b border-gray-100 bg-gray-50">
+                      <td colSpan={5} className="px-4 py-3">
+                        <p className="mb-2 text-xs font-medium text-gray-500">
+                          Quarter-by-quarter history
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {r.quarters.map((q) => (
+                            <span
+                              key={q.quarter}
+                              className="rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600"
+                            >
+                              <span className="font-medium text-gray-800">{q.quarter}</span>
+                              : {q.positions} position{q.positions === 1 ? "" : "s"}
+                              {q.filingCount > 1 ? ` (${q.filingCount} filings)` : ""}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       )}
