@@ -131,7 +131,7 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-12">
+    <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Preqel</h1>
@@ -256,79 +256,81 @@ export default function Home() {
       )}
 
       {results.length > 0 && (
-        <table className="w-full table-fixed border-collapse text-sm">
-          <colgroup>
-            <col className="w-[28%]" />
-            <col className="w-[24%]" />
-            <col className="w-[18%]" />
-            <col className="w-[15%]" />
-            <col className="w-[15%]" />
-          </colgroup>
-          <thead>
-            <tr className="border-b border-gray-200 text-left text-gray-600">
-              <th className="px-1 py-2 font-normal">Employer</th>
-              <th className="px-1 py-2 font-normal">Role family</th>
-              <th className="px-1 py-2 font-normal">Location</th>
-              <th className="px-1 py-2 font-normal">Trend</th>
-              <th className="px-1 py-2 text-right font-normal">Positions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {results.map((r) => {
-              const key = rowKey(r);
-              const isExpanded = expandedRows.has(key);
-              return (
-                <Fragment key={key}>
-                  <tr
-                    onClick={() => toggleExpanded(key)}
-                    className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
-                  >
-                    <td className="px-1 py-2 font-medium">
-                      <span className="mr-1.5 inline-block w-3 text-gray-400">
-                        {isExpanded ? "▾" : "▸"}
-                      </span>
-                      {r.employerName}
-                    </td>
-                    <td className="px-1 py-2 text-gray-600">{r.roleFamilyName}</td>
-                    <td className="px-1 py-2 text-gray-600">
-                      {r.city ? `${r.city}, ` : ""}
-                      {r.province}
-                    </td>
-                    <td className="px-1 py-2">
-                      <span
-                        className={`rounded px-2 py-0.5 text-xs ${TREND_STYLE[r.trend]}`}
-                      >
-                        {TREND_LABEL[r.trend]}
-                      </span>
-                    </td>
-                    <td className="px-1 py-2 text-right">{r.latestPositions}</td>
-                  </tr>
-                  {isExpanded && (
-                    <tr className="border-b border-gray-100 bg-gray-50">
-                      <td colSpan={5} className="px-4 py-3">
-                        <p className="mb-2 text-xs font-medium text-gray-500">
-                          Quarter-by-quarter history
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {r.quarters.map((q) => (
-                            <span
-                              key={q.quarter}
-                              className="rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600"
-                            >
-                              <span className="font-medium text-gray-800">{q.quarter}</span>
-                              : {q.positions} position{q.positions === 1 ? "" : "s"}
-                              {q.filingCount > 1 ? ` (${q.filingCount} filings)` : ""}
-                            </span>
-                          ))}
-                        </div>
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <table className="w-full min-w-[640px] table-fixed border-collapse text-sm">
+            <colgroup>
+              <col className="w-[28%]" />
+              <col className="w-[24%]" />
+              <col className="w-[18%]" />
+              <col className="w-[15%]" />
+              <col className="w-[15%]" />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-gray-200 text-left text-gray-600">
+                <th className="px-1 py-2 font-normal">Employer</th>
+                <th className="px-1 py-2 font-normal">Role family</th>
+                <th className="px-1 py-2 font-normal">Location</th>
+                <th className="px-1 py-2 font-normal">Trend</th>
+                <th className="px-1 py-2 text-right font-normal">Positions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {results.map((r) => {
+                const key = rowKey(r);
+                const isExpanded = expandedRows.has(key);
+                return (
+                  <Fragment key={key}>
+                    <tr
+                      onClick={() => toggleExpanded(key)}
+                      className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                    >
+                      <td className="px-1 py-2 font-medium">
+                        <span className="mr-1.5 inline-block w-3 text-gray-400">
+                          {isExpanded ? "▾" : "▸"}
+                        </span>
+                        {r.employerName}
                       </td>
+                      <td className="px-1 py-2 text-gray-600">{r.roleFamilyName}</td>
+                      <td className="px-1 py-2 text-gray-600">
+                        {r.city ? `${r.city}, ` : ""}
+                        {r.province}
+                      </td>
+                      <td className="px-1 py-2">
+                        <span
+                          className={`rounded px-2 py-0.5 text-xs ${TREND_STYLE[r.trend]}`}
+                        >
+                          {TREND_LABEL[r.trend]}
+                        </span>
+                      </td>
+                      <td className="px-1 py-2 text-right">{r.latestPositions}</td>
                     </tr>
-                  )}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
+                    {isExpanded && (
+                      <tr className="border-b border-gray-100 bg-gray-50">
+                        <td colSpan={5} className="px-4 py-3">
+                          <p className="mb-2 text-xs font-medium text-gray-500">
+                            Quarter-by-quarter history
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {r.quarters.map((q) => (
+                              <span
+                                key={q.quarter}
+                                className="rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600"
+                              >
+                                <span className="font-medium text-gray-800">{q.quarter}</span>
+                                : {q.positions} position{q.positions === 1 ? "" : "s"}
+                                {q.filingCount > 1 ? ` (${q.filingCount} filings)` : ""}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {results.length > 0 && results.length < total && (
