@@ -1,6 +1,6 @@
 import { pool } from "./db";
 
-export type TrendDirection = "up" | "flat" | "down";
+export type TrendDirection = "up" | "flat" | "down" | "limited";
 
 export type QuarterDatum = {
   quarter: string;
@@ -42,17 +42,25 @@ export type SearchResult = {
 const TREND_CHANGE_THRESHOLD = 0.15;
 
 /**
- * Classifies trend direction for one employer+role+location group, given
+ * Classifies trend direction for one employer+role+province group, given
  * its quarters sorted ascending and the most recent quarter present
  * ANYWHERE in the overall dataset (not just this group).
  *
  * The "latestOverallQuarter" parameter is what makes this correct rather
  * than naive: a group with only ONE quarter of data is ambiguous on its
- * own — it could be a brand-new filer (should read as "up") or a filer
- * that existed in an older quarter and simply didn't appear in the most
- * recent one (should read as "down", not "up"). Distinguishing those two
- * cases requires knowing what the newest quarter in the whole dataset
- * is, not just what this group happens to have.
+ * own. Two sub-cases:
+ *   - That one quarter IS the newest in the dataset: a genuinely NEW
+ *     filer. That's real, informative signal — "up" is the right call.
+ *   - That one quarter is an OLDER one, and the group has nothing in the
+ *     newest quarter: this does NOT mean the same thing as a measured
+ *     decline. It might mean the employer simply hasn't filed again yet,
+ *     a data quirk, or a real drop-off — we can't tell from one point.
+ *     Labeling this "down" overstates what we actually know (real
+ *     testing against live data showed employers with genuinely
+ *     continuous, growing multi-quarter history getting mislabeled
+ *     "Declining" this way once grouped at a granularity sparse enough
+ *     to produce lots of single-quarter groups). "limited" is the
+ *     honest label: not enough history to call a direction either way.
  */
 export function classifyTrend(
   sortedQuarters: QuarterDatum[],
@@ -73,11 +81,7 @@ export function classifyTrend(
     return "flat";
   }
 
-  // Only one quarter of data for this group. Whether that reads as "up"
-  // or "down" depends entirely on whether that one quarter IS the newest
-  // quarter in the dataset (genuinely new filer) or an OLDER one (they
-  // stopped appearing — the group is absent from the current quarter).
-  return latest.quarter === latestOverallQuarter ? "up" : "down";
+  return latest.quarter === latestOverallQuarter ? "up" : "limited";
 }
 
 function titleCaseDisplayName(name: string): string {
@@ -88,9 +92,28 @@ function titleCaseDisplayName(name: string): string {
 
 /**
  * Groups raw mv_hiring_trends rows (already joined with employer/role
- * family names) by employer+role+province+city, and classifies a trend
- * for each group. Pure function — no DB access — so it's testable
- * against fabricated rows without a live database.
+ * family names) by employer+role+province, and classifies a trend for
+ * each group. Pure function — no DB access — so it's testable against
+ * fabricated rows without a live database.
+ *
+ * Deliberately does NOT include city in the grouping key. Earlier it
+ * did, and real testing against live data showed this was actively
+ * misleading: a company like Amazon files across many different cities
+ * within the same province, often skipping a specific city for a
+ * quarter or two even while overall hiring is healthy and growing. At
+ * city granularity, 74% of all groups ended up with only one quarter of
+ * data each (verified: 57,634 of 78,034 groups), which meant the
+ * single-quarter classification fallback was doing most of the work,
+ * not genuine multi-quarter trend detection — and it was systematically
+ * mislabeling continuously-growing employers as "Declining" just
+ * because their filings happened to be spread across cities rather
+ * than concentrated in one. Grouping by province instead lets a
+ * company's real provincial hiring pattern show through.
+ *
+ * city is still tracked and shown for display — chosen as the highest-
+ * position city within the group's own most recent quarter (alphabetical
+ * tie-break for determinism) — it's just no longer part of what decides
+ * whether two rows belong to the same trend history.
  */
 export function groupAndClassify(
   rows: Array<{
@@ -111,7 +134,7 @@ export function groupAndClassify(
 
   const groups = new Map<string, typeof rows>();
   for (const row of rows) {
-    const key = `${row.employer_id}|${row.role_family_id}|${row.province_territory}|${row.city ?? ""}`;
+    const key = `${row.employer_id}|${row.role_family_id}|${row.province_territory}`;
     const bucket = groups.get(key);
     if (bucket) bucket.push(row);
     else groups.set(key, [row]);
@@ -119,28 +142,60 @@ export function groupAndClassify(
 
   const signals: HiringSignal[] = [];
   for (const groupRows of groups.values()) {
-    const sorted = [...groupRows].sort((a, b) =>
-      a.source_quarter.localeCompare(b.source_quarter)
-    );
-    const quarters: QuarterDatum[] = sorted.map((r) => ({
-      quarter: r.source_quarter,
-      positions: r.total_positions,
-      filingCount: r.filing_count,
-    }));
+    // Sum positions/filingCount across cities that share the same
+    // quarter, so one row per quarter feeds the trend classifier.
+    const byQuarter = new Map<string, { positions: number; filingCount: number }>();
+    for (const row of groupRows) {
+      const existing = byQuarter.get(row.source_quarter);
+      if (existing) {
+        existing.positions += row.total_positions;
+        existing.filingCount += row.filing_count;
+      } else {
+        byQuarter.set(row.source_quarter, {
+          positions: row.total_positions,
+          filingCount: row.filing_count,
+        });
+      }
+    }
+
+    const quarters: QuarterDatum[] = [...byQuarter.entries()]
+      .map(([quarter, v]) => ({ quarter, positions: v.positions, filingCount: v.filingCount }))
+      .sort((a, b) => a.quarter.localeCompare(b.quarter));
 
     const trend = classifyTrend(quarters, latestOverallQuarter);
-    const latest = sorted[sorted.length - 1];
+    const latestQuarterStr = quarters[quarters.length - 1].quarter;
+    const latestQuarterTotals = byQuarter.get(latestQuarterStr)!;
 
+    // Display city: the highest-position city among this group's rows
+    // in its own most recent quarter. Alphabetical tie-break for
+    // determinism (not for any meaningful reason — just needs to be
+    // stable across runs).
+    let displayCity: string | null = null;
+    let bestCityPositions = -Infinity;
+    for (const row of groupRows) {
+      if (row.source_quarter !== latestQuarterStr || row.city === null) continue;
+      const better =
+        row.total_positions > bestCityPositions ||
+        (row.total_positions === bestCityPositions &&
+          displayCity !== null &&
+          row.city.localeCompare(displayCity) < 0);
+      if (better) {
+        bestCityPositions = row.total_positions;
+        displayCity = row.city;
+      }
+    }
+
+    const first = groupRows[0];
     signals.push({
-      employerId: latest.employer_id,
-      employerName: titleCaseDisplayName(latest.employer_name),
-      roleFamilyId: latest.role_family_id,
-      roleFamilyName: latest.role_family_name,
-      province: latest.province_territory,
-      city: latest.city,
+      employerId: first.employer_id,
+      employerName: titleCaseDisplayName(first.employer_name),
+      roleFamilyId: first.role_family_id,
+      roleFamilyName: first.role_family_name,
+      province: first.province_territory,
+      city: displayCity,
       trend,
-      latestQuarter: latest.source_quarter,
-      latestPositions: latest.total_positions,
+      latestQuarter: latestQuarterStr,
+      latestPositions: latestQuarterTotals.positions,
       quarters,
     });
   }

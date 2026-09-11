@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchHiringSignals, type TrendDirection } from "../../../lib/hiring-trends";
 
-const VALID_TRENDS: TrendDirection[] = ["up", "flat", "down"];
+const VALID_TRENDS: TrendDirection[] = ["up", "flat", "down", "limited"];
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;

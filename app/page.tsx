@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 type RoleFamily = { id: number; name: string };
-type TrendDirection = "up" | "flat" | "down";
+type TrendDirection = "up" | "flat" | "down" | "limited";
 
 type HiringSignal = {
   employerId: number;
@@ -22,12 +22,14 @@ const TREND_LABEL: Record<TrendDirection, string> = {
   up: "Ramping up",
   flat: "Flat",
   down: "Declining",
+  limited: "Limited data",
 };
 
 const TREND_STYLE: Record<TrendDirection, string> = {
   up: "bg-green-100 text-green-800",
   flat: "bg-gray-100 text-gray-700",
   down: "bg-red-100 text-red-800",
+  limited: "bg-yellow-100 text-yellow-800",
 };
 
 export default function Home() {
@@ -169,6 +171,7 @@ export default function Home() {
           <option value="up">Ramping up</option>
           <option value="flat">Flat</option>
           <option value="down">Declining</option>
+          <option value="limited">Limited data</option>
         </select>
       </div>
 
