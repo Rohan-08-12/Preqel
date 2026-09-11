@@ -35,6 +35,7 @@
 import { parseArgs } from "node:util";
 import { pool } from "../lib/db";
 import { isNumberedCompany, normalizeEmployerName } from "../lib/employer-normalize";
+import { pluralVariants } from "../lib/employer-plural";
 import {
   findBestMatch,
   type EmployerCandidate,
@@ -146,6 +147,27 @@ async function main() {
     const exactId = byCanonical.get(normalized);
     if (exactId !== undefined) {
       await linkAlias(rawName, exactId, "rule_normalized", null);
+      stats.rule_normalized++;
+      continue;
+    }
+
+    // (b2) plural/singular exact match — a real, recurring pattern in
+    // the review queue was the same company with one word singular in
+    // one filing and plural in another ("SHREEJI ENTERPRISE" vs
+    // "SHREEJI ENTERPRISES"). Safe to treat as exact match rather than
+    // fuzzy review: see lib/employer-plural.ts for why this is narrow
+    // and doesn't risk the false-merge failure mode fuzzy matching
+    // guards against.
+    let pluralMatchId: number | undefined;
+    for (const variant of pluralVariants(normalized)) {
+      const id = byCanonical.get(variant);
+      if (id !== undefined) {
+        pluralMatchId = id;
+        break;
+      }
+    }
+    if (pluralMatchId !== undefined) {
+      await linkAlias(rawName, pluralMatchId, "rule_normalized", null);
       stats.rule_normalized++;
       continue;
     }
