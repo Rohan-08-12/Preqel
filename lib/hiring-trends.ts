@@ -26,6 +26,13 @@ export type SearchFilters = {
   roleFamilyId?: number;
   province?: string;
   trend?: TrendDirection;
+  limit?: number;
+  offset?: number;
+};
+
+export type SearchResult = {
+  signals: HiringSignal[];
+  total: number;
 };
 
 // +/-15% change between the two most recent quarters a group has data
@@ -194,9 +201,16 @@ function mapRawRow(row: RawSignalRow) {
   };
 }
 
+// Defaults chosen to keep the unfiltered/no-filter case from returning
+// an ever-growing, unbounded result set as more quarters get ingested
+// (8 quarters already pushes this well past tens of thousands of
+// grouped signals).
+const DEFAULT_LIMIT = 100;
+const MAX_LIMIT = 500;
+
 export async function searchHiringSignals(
   filters: SearchFilters
-): Promise<HiringSignal[]> {
+): Promise<SearchResult> {
   const conditions: string[] = [];
   const params: unknown[] = [];
 
@@ -227,10 +241,29 @@ export async function searchHiringSignals(
     params
   );
 
-  const signals = groupAndClassify(rows.map(mapRawRow));
+  const grouped = groupAndClassify(rows.map(mapRawRow));
 
   // Trend filtering happens after grouping/classification, since trend
   // is an app-layer computation, not a stored column — can't filter it
   // in SQL. Fine at v1 data volumes (thousands of rows, not millions).
-  return filters.trend ? signals.filter((s) => s.trend === filters.trend) : signals;
+  const filtered = filters.trend
+    ? grouped.filter((s) => s.trend === filters.trend)
+    : grouped;
+
+  // Stable sort BEFORE paging — without an explicit order, slicing by
+  // offset/limit would return a different, meaningless subset on every
+  // call (Map iteration order isn't a guaranteed sort). Ranking by
+  // latestPositions descending surfaces the biggest, most relevant
+  // signals first, matching how we've been eyeballing results in SQL
+  // throughout this project.
+  const sorted = [...filtered].sort((a, b) => b.latestPositions - a.latestPositions);
+
+  const total = sorted.length;
+  const limit = Math.min(filters.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
+  const offset = filters.offset ?? 0;
+
+  return {
+    signals: sorted.slice(offset, offset + limit),
+    total,
+  };
 }

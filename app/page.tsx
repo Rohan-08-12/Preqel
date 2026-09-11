@@ -40,8 +40,23 @@ export default function Home() {
   const [trend, setTrend] = useState("");
 
   const [results, setResults] = useState<HiringSignal[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const PAGE_SIZE = 100;
+
+  function buildParams(offset: number) {
+    const params = new URLSearchParams();
+    if (employerQuery) params.set("employer", employerQuery);
+    if (roleFamilyId) params.set("roleFamilyId", roleFamilyId);
+    if (province) params.set("province", province);
+    if (trend) params.set("trend", trend);
+    params.set("limit", String(PAGE_SIZE));
+    params.set("offset", String(offset));
+    return params;
+  }
 
   // Load filter dropdown options once on mount.
   useEffect(() => {
@@ -57,27 +72,25 @@ export default function Home() {
       });
   }, []);
 
-  // Re-run search whenever any filter changes, debounced for the text
-  // input so we're not firing a request on every keystroke.
+  // Re-run search from the start whenever any filter changes, debounced
+  // for the text input so we're not firing a request on every keystroke.
+  // Always resets to offset 0 — a new filter means a new result set, not
+  // a continuation of the old one.
   useEffect(() => {
     const handle = setTimeout(() => {
       setLoading(true);
       setError(null);
 
-      const params = new URLSearchParams();
-      if (employerQuery) params.set("employer", employerQuery);
-      if (roleFamilyId) params.set("roleFamilyId", roleFamilyId);
-      if (province) params.set("province", province);
-      if (trend) params.set("trend", trend);
-
-      fetch(`/api/search?${params.toString()}`)
+      fetch(`/api/search?${buildParams(0).toString()}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.error) {
             setError(data.error);
             setResults([]);
+            setTotal(0);
           } else {
             setResults(data.results ?? []);
+            setTotal(data.total ?? 0);
           }
         })
         .catch(() => setError("Search failed. Check the console for details."))
@@ -85,7 +98,21 @@ export default function Home() {
     }, 300);
 
     return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [employerQuery, roleFamilyId, province, trend]);
+
+  function loadMore() {
+    setLoadingMore(true);
+    fetch(`/api/search?${buildParams(results.length).toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.error) {
+          setResults((prev) => [...prev, ...(data.results ?? [])]);
+          setTotal(data.total ?? 0);
+        }
+      })
+      .finally(() => setLoadingMore(false));
+  }
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
@@ -152,6 +179,12 @@ export default function Home() {
         <p className="text-sm text-gray-500">No results. Try adjusting your filters.</p>
       )}
 
+      {!loading && results.length > 0 && (
+        <p className="mb-2 text-xs text-gray-500">
+          Showing {results.length} of {total.toLocaleString()} results
+        </p>
+      )}
+
       {results.length > 0 && (
         <table className="w-full table-fixed border-collapse text-sm">
           <colgroup>
@@ -194,6 +227,18 @@ export default function Home() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {results.length > 0 && results.length < total && (
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="rounded border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+          >
+            {loadingMore ? "Loading…" : `Load more (${(total - results.length).toLocaleString()} remaining)`}
+          </button>
+        </div>
       )}
     </main>
   );

@@ -27,14 +27,28 @@ export async function GET(request: NextRequest) {
     trend = trendRaw as TrendDirection;
   }
 
+  const limitRaw = params.get("limit");
+  const limit = limitRaw ? Number(limitRaw) : undefined;
+  if (limitRaw && (Number.isNaN(limit) || limit! < 1)) {
+    return NextResponse.json({ error: "Invalid limit" }, { status: 400 });
+  }
+
+  const offsetRaw = params.get("offset");
+  const offset = offsetRaw ? Number(offsetRaw) : undefined;
+  if (offsetRaw && (Number.isNaN(offset) || offset! < 0)) {
+    return NextResponse.json({ error: "Invalid offset" }, { status: 400 });
+  }
+
   try {
-    const results = await searchHiringSignals({
+    const { signals, total } = await searchHiringSignals({
       employerQuery,
       roleFamilyId,
       province,
       trend,
+      limit,
+      offset,
     });
-    return NextResponse.json({ results });
+    return NextResponse.json({ results: signals, total });
   } catch (err) {
     console.error("Search query failed:", err);
     return NextResponse.json({ error: "Search failed" }, { status: 500 });
